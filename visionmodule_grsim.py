@@ -7,7 +7,7 @@
 
 import socket
 from time import sleep
-import messages_robocup_ssl_wrapper_pb2 as wrapper
+import proto.messages_robocup_ssl_wrapper_pb2 as wrapper
 import numpy as np
 
 MULTI_GROUP = '224.5.23.2'

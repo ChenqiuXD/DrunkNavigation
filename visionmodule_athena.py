@@ -14,7 +14,8 @@ MULTI_GROUP = '224.5.23.2'
 
 
 class VisionModule:
-    def __init__(self, VISION_PORT=23333, SENDERIP='0.0.0.0'):
+    def __init__(self, VISION_PORT=23333, SENDERIP='0.0.0.0', sim=True):
+        self.sim = sim
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
                                   socket.IPPROTO_UDP)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -24,14 +25,14 @@ class VisionModule:
                              socket.inet_aton(SENDERIP))
         self.robot_info = -100*np.ones(6)
         # self.ball_info = [-100, -100]
-        self.other_robots = -100*np.ones([7, 3])  # All the defending robots
+        # self.other_robots = []  # All the defending robots
 
     def receive(self):
         data, addr = self.sock.recvfrom(65535)
         # sleep(0.001)  # wait for reading
         return data
 
-    def get_info(self):
+    def get_info(self, robot_id):
         """
         get the info of our robot and the info of all the robots available in the pitch
         :return: None
@@ -41,14 +42,32 @@ class VisionModule:
         detection = detection_pb.Vision_DetectionFrame()
         detection.ParseFromString(data)
 
-        robot = detection.robots_blue[0]  # repeat object. Our robot is set to be No.0 robot
-        self.robot_info = np.array([robot.x/1000, robot.y/1000, robot.orientation,
-                                    robot.vel_x/1000, robot.vel_y/1000, robot.rotate_vel])
+        blue_robots = detection.robots_blue
+        yellow_robots = detection.robots_yellow
+        self.other_robots = []
+        for i in range(len(blue_robots)):
+            if blue_robots[i].robot_id == robot_id:
+                self.robot_info = np.array([blue_robots[i].x/1000,
+                                            blue_robots[i].y/1000,
+                                            blue_robots[i].orientation,
+                                           blue_robots[i].vel_x/1000,
+                                           blue_robots[i].vel_y/1000,
+                                           blue_robots[i].rotate_vel])
+            else:
+                self.other_robots.append([blue_robots[i].x/1000, blue_robots[
+                    i].y/1000, blue_robots[i].orientation])
+        for i in range(len(yellow_robots)):
+            self.other_robots.append([yellow_robots[i].x / 1000, yellow_robots[
+                i].y / 1000, yellow_robots[i].orientation])
 
-        robots = detection.robots_blue
-        self.other_robots = np.array([[robot.x/1000, robot.y/1000, robot.orientation] for robot in \
-                robots])
-        self.other_robots = np.delete(self.other_robots, 0, axis=0)
+        self.other_robots = np.array(self.other_robots)
+        if not self.sim:
+            self.robot_info[3] /= 10
+            self.robot_info[4] /= 10
+
+        # self.other_robots = np.array([[robot.x/1000, robot.y/1000,
+        #                   robot.orientation] for robot in robots])
+        # self.other_robots = np.delete(self.other_robots, 0, axis=0)
 
 
 if __name__ == '__main__':

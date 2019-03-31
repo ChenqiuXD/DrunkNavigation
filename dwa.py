@@ -15,18 +15,18 @@ class Config():
     # parameters
     def __init__(self):
         # robot parameter
-        self.max_speed = 5  # [m/s]
-        self.min_speed = -5  # [m/s]
+        self.max_speed = 1.0  # [m/s]
+        self.min_speed = -1.0  # [m/s]
         self.max_yawrate = 40.0 * math.pi / 180.0  # [rad/s]
         self.max_accel = 1  # [m/ss]
         self.max_dyawrate = 40.0 * math.pi / 180.0  # [rad/ss]
-        self.v_reso = 0.1  # [m/s]
+        self.v_reso = 0.05  # [m/s]
         self.yawrate_reso = math.pi / 180.0  # [rad/s]
         self.dt = 0.1  # [s]
         self.predict_time = 3  # [s]
         self.to_goal_cost_gain = 1.0
         self.speed_cost_gain = 1.0
-        self.robot_radius = 1.0  # [m]
+        self.robot_radius = 0.1  # [m]
         self.to_path_cost_gain = 1.0  # [m]
 
 
@@ -157,13 +157,17 @@ def calc_obstacle_cost(traj, ob, config):
 def calc_to_goal_cost(traj, goal, config):
     # calc to goal cost. It is 2D norm.
 
-    goal_magnitude = math.sqrt(goal[0]**2 + goal[1]**2)
-    traj_magnitude = math.sqrt(traj[-1, 0]**2 + traj[-1, 1]**2)
-    dot_product = (goal[0]*traj[-1, 0]) + (goal[1]*traj[-1, 1])
-    error = dot_product / (goal_magnitude*traj_magnitude)
-    error = int(error) if math.fabs(error) > 1 else error
-    error_angle = math.acos(error)
-    cost = config.to_goal_cost_gain * error_angle
+    # goal_magnitude = math.sqrt(goal[0]**2 + goal[1]**2)
+    # traj_magnitude = math.sqrt(traj[-1, 0]**2 + traj[-1, 1]**2)
+    # dot_product = (goal[0]*traj[-1, 0]) + (goal[1]*traj[-1, 1])
+    # error = dot_product / (goal_magnitude*traj_magnitude)
+    # error = int(error) if math.fabs(error) > 1 else error
+    # error_angle = math.acos(error)
+    # cost = config.to_goal_cost_gain * error_angle
+
+    cost = config.to_goal_cost_gain * (math.sqrt((traj[-1, 0] - goal[0])**2 + (traj[-1,
+                                                                                    1] - goal[1])
+                                                 **2))
 
     return cost
 
@@ -213,10 +217,10 @@ def dwa_control(pos, u, config, goal, path, ob):
     return u, traj, cost
 
 
-def plot_arrow(x, y, yaw, length=0.5, width=0.1):
-    plt.arrow(x, y, length * math.cos(yaw), length * math.sin(yaw),
-              head_length=width, head_width=width)
-    plt.plot(x, y)
+# def plot_arrow(x, y, yaw, length=0.5, width=0.1):
+#     plt.arrow(x, y, length * math.cos(yaw), length * math.sin(yaw),
+#               head_length=width, head_width=width)
+#     plt.plot(x, y)
 
 
 def main():
@@ -247,22 +251,22 @@ def main():
         pos = cal_next_point(pos, u, config.dt)
         traj = np.vstack((traj, pos))  # store state history
 
-        if show_animation:
-            plt.cla()
-            plt.plot(path[:, 0], path[:, 1])
-            plt.plot(ltraj[:, 0], ltraj[:, 1], "-g")
-            plt.text(ltraj[-1, 0], ltraj[-1, 1]+0.5, str(round(cost, 2)),
-                     color='red')
-            plt.text(ltraj[-1, 0], ltraj[-1, 1]+1, str([round(i, 2) for i in
-                                                        u]),
-                     color='blue')
-            plt.plot(pos[0], pos[1], "xr")
-            plt.plot(goal[0], goal[1], "xb")
-            plt.plot(ob[:, 0], ob[:, 1], "ok")
-            plot_arrow(pos[0], pos[1], pos[2])
-            plt.axis("equal")
-            plt.grid(True)
-            plt.pause(0.01)
+        # if show_animation:
+        #     plt.cla()
+        #     plt.plot(path[:, 0], path[:, 1])
+        #     plt.plot(ltraj[:, 0], ltraj[:, 1], "-g")
+        #     plt.text(ltraj[-1, 0], ltraj[-1, 1]+0.5, str(round(cost, 2)),
+        #              color='red')
+        #     plt.text(ltraj[-1, 0], ltraj[-1, 1]+1, str([round(i, 2) for i in
+        #                                                 u]),
+        #              color='blue')
+        #     plt.plot(pos[0], pos[1], "xr")
+        #     plt.plot(goal[0], goal[1], "xb")
+        #     plt.plot(ob[:, 0], ob[:, 1], "ok")
+        #     plot_arrow(pos[0], pos[1], pos[2])
+        #     plt.axis("equal")
+        #     plt.grid(True)
+        #     plt.pause(0.01)
 
         # check goal
         if math.sqrt((pos[0] - goal[0])**2 + (pos[1] - goal[1])**2) <= \
@@ -271,9 +275,9 @@ def main():
             break
 
     print("Done")
-    if show_animation:
-        plt.plot(traj[:, 0], traj[:, 1], "-r")
-        plt.show()
+    # if show_animation:
+    #     plt.plot(traj[:, 0], traj[:, 1], "-r")
+    #     plt.show()
 
 
 if __name__ == '__main__':

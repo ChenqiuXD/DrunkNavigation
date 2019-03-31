@@ -8,19 +8,30 @@
 import socket
 import numpy as np
 from time import sleep
-import grSim_Packet_pb2 as sim_pkg
-
-ACTION_IP = '127.0.0.1'  # local host grSim
-ACTION_PORT = 20011  # grSim command listen port
+import proto.grSim_Packet_pb2 as sim_pkg
+from serialmodule import SerialModule
 
 
 class ActionModule:
-    def __init__(self, ACTION_IP='127.0.0.1', ACTION_PORT=20011):
-        self.address = (ACTION_IP, ACTION_PORT)
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    def __init__(self, ACTION_IP='127.0.0.1', ACTION_PORT=20011, serial_port='COM5', sim=True):
+        if sim:  # For GrSim simulation
+            self.address = (ACTION_IP, ACTION_PORT)
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        else:  # For real ssl robot running
+            self.serial_connector = SerialModule(serial_port)
     
     # def send_start_package(self):
     #     self.socket.sendto(self.start_package, self.address)
+    def send_action_real(self, robot_id, vx, vy, vw):
+        """
+        send velocity to real robot through port communication.
+        :param robot_id: The ID of the robot.
+        :param vx: cm/s
+        :param vy: cm/s
+        :param vw: 1/40 * rad/s
+        :return: None
+        """
+        self.serial_connector.send_velocity(robot_id, vx, vy, vw)
     
     def send_action(self, robot_num=0, vx=0, vy=0, w=0):
         package = sim_pkg.grSim_Packet()
@@ -84,6 +95,8 @@ class ActionModule:
 
 
 if __name__ == "__main__":
+    ACTION_IP = '127.0.0.1'  # local host grSim
+    ACTION_PORT = 20011  # grSim command listen port
     action = ActionModule(ACTION_IP, ACTION_PORT)
     action.reset(robot_num=6)
     while True:
