@@ -7,6 +7,7 @@
 
 import socket
 import numpy as np
+import math
 from time import sleep
 import proto.grSim_Packet_pb2 as sim_pkg
 from serialmodule import SerialModule
@@ -19,7 +20,7 @@ class ActionModule:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         else:  # For real ssl robot running
             self.serial_connector = SerialModule(serial_port)
-    
+
     # def send_start_package(self):
     #     self.socket.sendto(self.start_package, self.address)
     def send_action_real(self, robot_id, vx, vy, vw):
@@ -32,13 +33,13 @@ class ActionModule:
         :return: None
         """
         self.serial_connector.send_velocity(robot_id, vx, vy, vw)
-    
-    def send_action(self, robot_num=0, vx=0, vy=0, w=0):
+
+    def send_action(self, robot_num=0, vx=0, vy=0, w=0, isteamyellow=False):
         package = sim_pkg.grSim_Packet()
         commands = package.commands
-        
+
         commands.timestamp = 0
-        commands.isteamyellow = False
+        commands.isteamyellow = isteamyellow
         command = commands.robot_commands.add()
         command.id = robot_num
         command.kickspeedx = 0
@@ -48,34 +49,34 @@ class ActionModule:
         command.velangular = w
         command.spinner = 0
         command.wheelsspeed = False
-        
+
         self.socket.sendto(package.SerializeToString(), self.address)
-        
-    def reset(self, robot_num):
+
+    def reset(self, robot_num, x, y, theta):
         package = sim_pkg.grSim_Packet()
         replacement = package.replacement
         # ball_rep = replacement.ball
         bot_rep = replacement.robots.add()
-        
+
         # ball_rep.x = 100.0
         # ball_rep.y = 0.0
         # ball_rep.vx = 0.0
         # ball_rep.vy = 0.0
-        
-        bot_rep.x = 0.0
-        bot_rep.y = 0.0
-        bot_rep.dir = 0.0
+
+        bot_rep.x = x
+        bot_rep.y = y
+        bot_rep.dir = theta
         bot_rep.id = robot_num
-        bot_rep.yellowteam = False
-        
+        bot_rep.yellowteam = True
+
         self.socket.sendto(package.SerializeToString(), self.address)
-        
+
     def reset_ball(self):
         package = sim_pkg.grSim_Packet()
         replacement = package.replacement
         ball_rep = replacement.ball
-        ball_rep.x = np.random.randint(-600, 600)/100.0
-        ball_rep.y = np.random.randint(-450, 450)/100.0
+        ball_rep.x = np.random.randint(-600, 600) / 100.0
+        ball_rep.y = np.random.randint(-450, 450) / 100.0
         ball_rep.vx = 0.0
         ball_rep.vy = 0.0
         self.socket.sendto(package.SerializeToString(), self.address)
@@ -84,13 +85,13 @@ class ActionModule:
         package = sim_pkg.grSim_Packet()
         replacement = package.replacement
         bot_rep = replacement.robots.add()
-        
-        bot_rep.x = np.random.randint(-600, 600)/100.0
-        bot_rep.y = np.random.randint(-450, 450)/100.0
-        bot_rep.dir = np.pi*np.random.randint(-180, 180)/180.0
+
+        bot_rep.x = np.random.randint(-600, 600) / 100.0
+        bot_rep.y = np.random.randint(-450, 450) / 100.0
+        bot_rep.dir = np.pi * np.random.randint(-180, 180) / 180.0
         bot_rep.id = robot_num
         bot_rep.yellowteam = False
-        
+
         self.socket.sendto(package.SerializeToString(), self.address)
 
 

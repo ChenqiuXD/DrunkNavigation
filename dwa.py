@@ -18,16 +18,17 @@ class Config():
         self.max_speed = 1.0  # [m/s]
         self.min_speed = -1.0  # [m/s]
         self.max_yawrate = 40.0 * math.pi / 180.0  # [rad/s]
-        self.max_accel = 1  # [m/ss]
-        self.max_dyawrate = 40.0 * math.pi / 180.0  # [rad/ss]
-        self.v_reso = 0.05  # [m/s]
+        self.max_accel = 2  # [m/ss]
+        self.max_dyawrate = 40 * math.pi / 180.0  # [rad/ss]
+        self.v_reso = 0.1  # [m/s]
         self.yawrate_reso = math.pi / 180.0  # [rad/s]
         self.dt = 0.1  # [s]
-        self.predict_time = 3  # [s]
+        self.predict_time = 1.5  # [s]
         self.to_goal_cost_gain = 1.0
-        self.speed_cost_gain = 1.0
-        self.robot_radius = 0.1  # [m]
+        self.speed_cost_gain = 0.5
         self.to_path_cost_gain = 1.0  # [m]
+        self.to_obstacle_cost_gain = 0.4
+        self.robot_radius = 0.1  # [m]
 
 
 def cal_next_point(pos, u, dt):
@@ -67,7 +68,8 @@ def calc_dynamic_window(pos, config):
                       pos[5] + config.max_dyawrate * config.dt]
 
     #  [vxmin, vxmax, vymin, vymax, yawrate min, yawrate max]
-    dw = [max(robot_limits[0], dynamic_limits[0]), min(robot_limits[1], dynamic_limits[1]), max(robot_limits[0], dynamic_limits[2]), min(robot_limits[1], dynamic_limits[3]), max(robot_limits[2], dynamic_limits[4]), min(robot_limits[3], dynamic_limits[5])]
+    dw = [max(robot_limits[0], dynamic_limits[0]), min(robot_limits[1], dynamic_limits[1]), max(robot_limits[0], dynamic_limits[2]),
+          min(robot_limits[1], dynamic_limits[3]), max(robot_limits[2], dynamic_limits[4]), min(robot_limits[3], dynamic_limits[5])]
 
     return dw
 
@@ -120,8 +122,8 @@ def calc_final_input(pos, u, dw, config, goal, path, ob):
                 ob_cost = calc_obstacle_cost(traj, ob, config)
                 # to_path_cost = calc_to_path_cost(traj, path, config)
 
+                # final_cost = to_goal_cost + ob_cost + speed_cost + to_path_cost
                 final_cost = to_goal_cost + ob_cost + speed_cost
-
                 # search minimum trajectory
                 if min_cost >= final_cost:
                     min_cost = final_cost
@@ -151,7 +153,7 @@ def calc_obstacle_cost(traj, ob, config):
             if minr >= r:
                 minr = r
 
-    return 1.0 / minr
+    return 1.0 / minr * config.to_obstacle_cost_gain
 
 
 def calc_to_goal_cost(traj, goal, config):
@@ -164,10 +166,18 @@ def calc_to_goal_cost(traj, goal, config):
     # error = int(error) if math.fabs(error) > 1 else error
     # error_angle = math.acos(error)
     # cost = config.to_goal_cost_gain * error_angle
+    straight_line = np.array([goal[0] - traj[0, 0], goal[1] - traj[0, 1]])
+    velocity_line = np.array([traj[0, 3] * math.cos(traj[0, 2]) - traj[0, 4] * math.sin(traj[0,
+                                                                                             2]),
+                              traj[0, 3] * math.sin(traj[0, 2]) + traj[0, 4] * math.cos(traj[0,
+                                                                                             2])])
+
+    direction_cost = np.dot(straight_line, velocity_line) / (np.linalg.norm(straight_line) *
+                                                             np.linalg.norm(velocity_line))
 
     cost = config.to_goal_cost_gain * (math.sqrt((traj[-1, 0] - goal[0])**2 + (traj[-1,
                                                                                     1] - goal[1])
-                                                 **2))
+                                                 ** 2) + direction_cost)
 
     return cost
 
@@ -188,9 +198,8 @@ def calc_to_path_cost(traj, path, config):
 
 def cal_to_path_dist(traj, path):
     dist_min = float("inf")
-    for i in range(len(path[:, 0])):
-        dist = math.sqrt((traj[-1, 0]-path[i, 0])**2+(traj[-1, 1]-path[i,
-                                                                       1])**2)
+    for i in range(len(path)):
+        dist = math.sqrt((traj[-1, 0]-path[i].x)**2+(traj[-1, 1]-path[i].y)**2)
         if dist <= dist_min:
             dist_min = dist
 

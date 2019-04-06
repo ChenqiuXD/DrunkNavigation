@@ -30,7 +30,6 @@ class DebugModule:
         final cost.
         :return: None
         """
-        self.messages = athena_dbg_pb.Debug_Msgs()
         self.dwa_msgs = [self.messages.msgs.add() for i in range(5)]
         for i in range(4):
             self.dwa_msgs[i].type = 2
@@ -56,38 +55,34 @@ class DebugModule:
         message = self.messages.msgs.add()
         message.type = 2
         message.color = 0
+        message.text.pos.x = x
+        message.text.pos.y = y
+        message.text.text = text
 
-        text_msg = message.text
-        pos = text_msg.pos
-        pos.x = x
-        pos.y = y
+        return message
 
-        text_msg.text = text
-
-    def add_line(self, start_x, start_y, end_x, end_y, forward):
-        point1 = athena_dbg_pb.Point()
-        point2 = athena_dbg_pb.Point()
-        point1.x = start_x
-        point1.y = start_y
-        point2.x = end_x
-        point2.y = end_y
-
+    def add_line(self, start_x, start_y, end_x, end_y, forward=True, back=False):
         message = self.messages.msgs.add()
         message.type = athena_dbg_pb.Debug_Msg.LINE
         message.color = athena_dbg_pb.Debug_Msg.WHITE
+        message.line.start.x = start_x
+        message.line.start.y = start_y
+        message.line.end.x = end_x
+        message.line.end.y = end_y
+        message.line.FORWARD = forward
+        message.line.BACK = back
 
-        line = athena_dbg_pb.Debug_Line()
-        line.start.CopyFrom(point1)
-        line.end.CopyFrom(point2)
-        line.FORWARD = True
-        line.BACK = False
-        message.line.CopyFrom(line)
+        return message
 
 
 if __name__ == "__main__":
-    debug = DebugModule('127.0.0.1', 20001)
-    debug.dwa_msg_init()
-    # debug.add_line(-460, -352, 0, 0, True)
-    # debug.add_text(-500, -400, "hello world")
+    debug = DebugModule()
+    debug.msg_init()
+    lines = []
+    texts = []
+
+    lines.append(debug.add_line(-460, -352, 0, 0))
+    texts.append(debug.add_text(-500, -400, "hello world"))
+    lines.append(debug.add_line(0, 0, 250, 250))
 
     debug.send_msg(debug.messages)

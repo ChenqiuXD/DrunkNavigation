@@ -16,3 +16,8 @@
 
 1. 完成仿真环境和机器人控制算法的DWA的连接（以尽量低的复杂度）；
 2. 完成Python程序和Athena的通信。
+
+## FastPathPlanning
+1. 可以运行FastPathPlanning文件夹中的run_viewer文件来查看算法的效果，需要opencv、numpy，会出现代表障碍物的红色圆圈（会有重叠）和象征规划路径的蓝线，按空格键陆续出现规划轨迹。
+2. 运行grSim与Athena，在运行main.py可以看到Athena上面会出现FPP规划的路径。
+3. 待解决问题为：算法规划后会震荡，规划的路径在某个地方会画好几条重复的线。

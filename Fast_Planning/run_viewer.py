@@ -1,6 +1,6 @@
 # Import Area
-from Classes import Point, Obstacle, Environment, Trajectory
-from Functions import FastPathPlanning
+from Fast_Planning.Classes import Point, Obstacle, Environment, Trajectory
+from Fast_Planning.Functions import FastPathPlanning
 import numpy as np
 import cv2
 import time
@@ -21,20 +21,21 @@ DOTSIZE = 5
 
 
 # Function Definition
-def run_viewer(trajectory, environment):
+def run_viewer(trajectory, environment, viewSize, envSize):
     img = np.zeros((600, 900, 3), dtype="uint8")
+    porpotion = viewSize[0]/envSize[0]
 
     # while True:
     cv2.rectangle(img, (0, 0), (900, 600), BLACK, -1)
     for obstacle in environment.obstacles:
-        cv2.circle(img, (obstacle.pos.x, obstacle.pos.y), obstacle.radius, YELLOW)
+        cv2.circle(img, (int(porpotion*obstacle.pos.x), int(porpotion*obstacle.pos.y)), int(porpotion*obstacle.radius), YELLOW)
     for i in np.arange(len(trajectory.points)-1):
-        cv2.line(img, (int(trajectory.points[i].x), int(trajectory.points[i].y)),
-                 (int(trajectory.points[i+1].x), int(trajectory.points[i+1].y)), RED)
-        cv2.circle(img, (int(trajectory.points[i].x), int(trajectory.points[i].y)), DOTSIZE, YELLOW)
+        cv2.line(img, (int(porpotion*trajectory.points[i].x), int(porpotion*trajectory.points[i].y)),
+                 (int(porpotion*trajectory.points[i+1].x), int(porpotion*trajectory.points[i+1].y)), RED)
+        cv2.circle(img, (int(porpotion*trajectory.points[i].x), int(porpotion*trajectory.points[i].y)), int(porpotion*DOTSIZE), YELLOW)
         cv2.imshow("Viewer", img)
         cv2.waitKey(0)
-    cv2.circle(img, (int(trajectory.points[-1].x), int(trajectory.points[-1].y)), DOTSIZE, YELLOW)
+    cv2.circle(img, (int(porpotion*trajectory.points[-1].x), int(porpotion*trajectory.points[-1].y)), int(porpotion*DOTSIZE), YELLOW)
     # cv2.line(img, (START_POINT), (END_POINT), BLUE)
     cv2.imshow("Viewer", img)
     cv2.waitKey(0)
@@ -78,16 +79,16 @@ if __name__ == '__main__':
 
     # Wrong testing examples
     # obstacles = [Obstacle(100, 100), Obstacle(69, 159), Obstacle(145, 226), Obstacle(159, 285), Obstacle(200, 100), Obstacle(300, 300)]
-    obstacles = [Obstacle(300,300), Obstacle(206,281), Obstacle(274,145), Obstacle(155,257)]
+    # obstacles = [Obstacle(300,300), Obstacle(206,281), Obstacle(274,145), Obstacle(155,257)]
 
-    # obstacles = [Obstacle(300, 300)]
-    # for i in np.arange(3):
-    #     obstacles.append(Obstacle(np.random.randint(100+OBSTACLE_RADIUS, int(PERIMETER[0]/2)),
-    #                               np.random.randint(100+OBSTACLE_RADIUS, int(PERIMETER[1]/2))))
+    obstacles = [Obstacle(300, 300)]
+    for i in np.arange(7):
+        obstacles.append(Obstacle(np.random.randint(100+OBSTACLE_RADIUS, int(PERIMETER[0]/1.5)),
+                                  np.random.randint(100+OBSTACLE_RADIUS, int(PERIMETER[1]/1.5))))
 
     environment = Environment(obstacles, PERIMETER[0], PERIMETER[1], ROBOT_RADIUS)
 
     trajectory, subgoalAdd = FastPathPlanning(environment, trajectory, depth)
-    # run_viewer(trajectory, environment)
-    run_debug_viewer(trajectory.points[0], trajectory.points[-1], subgoalAdd, environment)
+    run_viewer(trajectory, environment, [1,1], [1,1])
+    # run_debug_viewer(trajectory.points[0], trajectory.points[-1], subgoalAdd, environment)
     print("All done")
